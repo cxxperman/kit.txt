@@ -1,0 +1,133 @@
+/* kit.txt — общие элементы интерфейса dev.txt™ для всего, что рисуется в браузере: Aura, темы, страницы.
+ * Подключается после dist/tokens.css. Здесь нет ни одного своего цвета, радиуса или длительности — только токены.
+ * Те же элементы для C# — в ui/Ui.cs; менять их нужно вместе. Образец — ui/gallery.html. */
+
+/* ───────── Основа ───────── */
+.dt-app {
+  margin: 0;
+  font: 400 var(--dt-size-body)/1.4 var(--dt-font-text);
+  color: var(--dt-label);
+  background: var(--dt-bg);
+  -webkit-font-smoothing: antialiased;
+}
+.dt-app *, .dt-app *::before, .dt-app *::after { box-sizing: border-box; }
+.dt-app button, .dt-app input, .dt-app select { font: inherit; color: inherit; }
+.dt-app :focus-visible { outline: 3px solid color-mix(in srgb, var(--dt-accent) 55%, transparent); outline-offset: 1px; }
+
+.dt-display { font: 700 var(--dt-size-display)/1.15 var(--dt-font-display); letter-spacing: -0.015em; }
+.dt-title { font: 600 var(--dt-size-title)/1.25 var(--dt-font-display); }
+.dt-heading { font: 600 var(--dt-size-heading)/1.3 var(--dt-font-text); }
+.dt-caption { font-size: var(--dt-size-caption); color: var(--dt-label-2); }
+.dt-micro { font-size: var(--dt-size-micro); color: var(--dt-label-3); }
+
+/* ───────── Свечение за стеклом: три цветных пятна на тёмном фоне ───────── */
+.dt-backdrop { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.dt-backdrop i { position: absolute; border-radius: 50%; }
+.dt-backdrop i:nth-child(1) { width: 1000px; height: 1000px; left: -380px; top: -420px; background: radial-gradient(closest-side, color-mix(in srgb, var(--dt-brand) 42%, transparent), color-mix(in srgb, var(--dt-brand) 23%, transparent) 45%, transparent); }
+.dt-backdrop i:nth-child(2) { width: 900px; height: 900px; right: -400px; bottom: -420px; background: radial-gradient(closest-side, color-mix(in srgb, var(--dt-blue) 26%, transparent), color-mix(in srgb, var(--dt-blue) 14%, transparent) 45%, transparent); }
+.dt-backdrop i:nth-child(3) { width: 760px; height: 760px; right: -280px; top: -360px; background: radial-gradient(closest-side, color-mix(in srgb, var(--dt-purple) 20%, transparent), color-mix(in srgb, var(--dt-purple) 11%, transparent) 45%, transparent); }
+
+/* ───────── Стекло: блок (углы 18) и строка списка (углы 14) ───────── */
+.dt-block, .dt-row {
+  position: relative;
+  background: var(--dt-glass);
+  border: 1px solid var(--dt-edge);
+  border-top-color: var(--dt-edge-top);
+}
+.dt-block { border-radius: var(--dt-radius-block); padding: 18px; }
+.dt-row { border-radius: var(--dt-radius-row); padding: 10px 14px; }
+/* Карточка — стекло потоньше: кнопка на ней должна читаться */
+.dt-block--card { background: linear-gradient(180deg, rgb(255 255 255 / 0.0825), rgb(255 255 255 / 0.041)); }
+
+/* ───────── Кнопка-капсула ───────── */
+.dt-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 32px; min-width: 96px; padding: 0 16px 1px;
+  border-radius: 16px; border: 1px solid var(--dt-edge); border-top-color: var(--dt-edge-top);
+  background: var(--dt-glass);
+  font-weight: 600; font-size: var(--dt-size-body); color: var(--dt-label);
+  cursor: pointer; user-select: none; white-space: nowrap;
+  transition: transform var(--dt-dur-fast) var(--dt-ease-out);
+}
+.dt-btn:hover { background: var(--dt-glass-hover); }
+.dt-btn:active { transform: scale(0.965); transition-duration: var(--dt-dur-press); }
+.dt-btn:disabled, .dt-btn[aria-disabled='true'] { opacity: 0.45; pointer-events: none; }
+/* Главная: залита цветом, сверху чуть светлее. Цвет — акцент или свой через --dt-tint */
+.dt-btn--primary {
+  --tint: var(--dt-tint, var(--dt-accent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tint), white 12%), var(--tint));
+  border-color: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.dt-btn--primary:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--tint), white 18%), color-mix(in srgb, var(--tint), white 6%)); }
+
+/* ───────── Переключатель ─────────
+ * <label class="dt-switch"><input type="checkbox"><i></i></label> */
+.dt-switch { position: relative; display: inline-flex; cursor: pointer; }
+.dt-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.dt-switch i {
+  position: relative; flex: none; width: 46px; height: 28px; border-radius: 14px;
+  background: var(--dt-fill-2);
+  transition: background var(--dt-dur-base) ease-in-out;
+}
+.dt-switch i::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1.5px 6px rgb(0 0 0 / 0.28);
+  transition: transform var(--dt-dur-base) ease-in-out;
+}
+.dt-switch input:checked + i { background: var(--dt-green); }
+.dt-switch input:checked + i::after { transform: translateX(18px); }
+.dt-switch input:focus-visible + i { outline: 3px solid color-mix(in srgb, var(--dt-accent) 55%, transparent); outline-offset: 1px; }
+.dt-switch:has(input:disabled) { opacity: 0.45; pointer-events: none; }
+
+/* ───────── Переключатель из нескольких вариантов (вкладки, режимы) ─────────
+ * <div class="dt-seg" role="radiogroup"><button aria-checked="true">…</button>…</div> */
+.dt-seg {
+  display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 3px;
+  border-radius: 16px; background: var(--dt-glass); border: 1px solid var(--dt-edge); border-top-color: var(--dt-edge-top);
+}
+.dt-seg button {
+  height: 26px; padding: 0 14px; border: 1px solid transparent; border-radius: 13px; background: none;
+  font-size: var(--dt-size-body); color: var(--dt-label-2); cursor: pointer; white-space: nowrap;
+  transition: transform var(--dt-dur-fast) var(--dt-ease-out);
+}
+.dt-seg button:hover { color: var(--dt-label); }
+.dt-seg button:active { transform: scale(0.97); transition-duration: var(--dt-dur-press); }
+.dt-seg button[aria-checked='true'], .dt-seg button[aria-selected='true'] {
+  background: var(--dt-glass-strong); border-color: var(--dt-edge); border-top-color: var(--dt-edge-top); color: var(--dt-label); font-weight: 600;
+}
+
+/* ───────── Полоса хода ───────── <div class="dt-progress" style="--value: 0.42"></div> */
+.dt-progress { height: 4px; border-radius: 2px; background: var(--dt-fill-2); overflow: hidden; }
+.dt-progress::after {
+  content: ''; display: block; height: 100%; width: calc(var(--value, 0) * 100%); border-radius: 2px;
+  background: var(--dt-tint, var(--dt-accent)); transition: width var(--dt-dur-fast) linear;
+}
+
+/* ───────── Состояние: цветная точка и подпись ───────── */
+.dt-status { display: inline-flex; align-items: center; gap: 7px; font-size: var(--dt-size-caption); color: var(--dt-label-2); }
+.dt-status::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dt-label-3); }
+.dt-status--ok::before { background: var(--dt-green); }
+.dt-status--warn::before { background: var(--dt-orange); }
+.dt-status--bad::before { background: var(--dt-red); }
+
+/* ───────── Название продукта: «aura.txt™» ─────────
+ * <span class="dt-brand">aura<i>.txt</i><sup>™</sup></span> */
+.dt-brand { font-family: var(--dt-font-display); font-weight: 600; text-transform: lowercase; white-space: nowrap; }
+.dt-brand i { font-style: normal; color: var(--dt-label-2); }
+.dt-brand sup { font-size: 0.5em; font-weight: 400; color: var(--dt-label-3); vertical-align: top; line-height: 1.6; }
+
+/* ───────── Плитка значка: пиксельный значок на стекле ───────── */
+.dt-tile {
+  display: inline-grid; place-items: center; width: 52px; height: 52px; flex: none;
+  border-radius: var(--dt-radius-row); background: var(--dt-fill); border: 1px solid rgb(255 255 255 / 0.2);
+}
+.dt-tile img, .dt-tile svg { width: 36px; height: 36px; image-rendering: pixelated; }
+
+/* ───────── Подсказка ───────── */
+.dt-tip {
+  display: inline-block; max-width: 300px; padding: 5px 9px 6px;
+  border-radius: var(--dt-radius-tip); background: var(--dt-tooltip); color: #F5F5F7;
+  border: 1px solid rgb(255 255 255 / 0.08); border-top-color: rgb(255 255 255 / 0.28);
+  box-shadow: 0 3px 14px rgb(0 0 0 / 0.42); font-size: 12px;
+}

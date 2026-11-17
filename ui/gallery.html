@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kit.txt — образец</title>
+<link rel="stylesheet" href="../dist/tokens.css">
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* Только раскладка самой страницы-образца; вид элементов — целиком из kit.css */
+  body { min-height: 100vh; }
+  main { position: relative; max-width: 920px; margin: 0 auto; padding: 32px; display: grid; gap: 28px; }
+  header { display: flex; align-items: center; gap: 10px; }
+  header svg { width: 40px; height: 40px; }
+  section { display: grid; gap: 12px; }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card { display: grid; gap: 14px; }
+  .head { display: flex; gap: 14px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .rows { display: grid; gap: 8px; }
+</style>
+</head>
+<body class="dt-app">
+<div class="dt-backdrop"><i></i><i></i><i></i></div>
+<main>
+  <header><svg viewBox="-1 0 12 12" shape-rendering="crispEdges"><rect x="5" y="0" width="1" height="1" fill="#F08A4B"/><rect x="4" y="1" width="2" height="1" fill="#F08A4B"/><rect x="1" y="2" width="8" height="1" fill="#F08A4B"/><rect x="0" y="3" width="10" height="1" fill="#F08A4B"/><rect x="1" y="4" width="8" height="1" fill="#F08A4B"/><rect x="2" y="5" width="6" height="1" fill="#F08A4B"/><rect x="3" y="6" width="2" height="1" fill="#F08A4B"/><rect x="5" y="6" width="1" height="1" fill="#1A1A1E"/><rect x="6" y="6" width="1" height="1" fill="#F08A4B"/><rect x="3" y="7" width="2" height="1" fill="#F08A4B"/><rect x="5" y="7" width="1" height="1" fill="#1A1A1E"/><rect x="6" y="7" width="1" height="1" fill="#F08A4B"/><rect x="2" y="8" width="6" height="1" fill="#F08A4B"/><rect x="1" y="9" width="8" height="1" fill="#F08A4B"/><rect x="0" y="10" width="10" height="1" fill="#F08A4B"/><rect x="1" y="11" width="8" height="1" fill="#F08A4B"/></svg><span class="dt-display"><span class="dt-brand">kit<i>.txt</i><sup>™</sup></span></span></header>
+
+  <section>
+    <div class="dt-heading">Карточки продуктов</div>
+    <div class="cards">
+    <div class="dt-block dt-block--card card">
+      <div class="head"><span class="dt-tile"><svg viewBox="0 -1 12 12" shape-rendering="crispEdges"><rect x="4" y="0" width="2" height="1" fill="#F08A4B"/><rect x="3" y="1" width="4" height="1" fill="#F08A4B"/><rect x="11" y="1" width="1" height="1" fill="#F08A4B"/><rect x="2" y="2" width="6" height="1" fill="#F08A4B"/><rect x="10" y="2" width="2" height="1" fill="#F08A4B"/><rect x="1" y="3" width="11" height="1" fill="#F08A4B"/><rect x="0" y="4" width="2" height="1" fill="#F08A4B"/><rect x="2" y="4" width="1" height="1" fill="#1A1A1E"/><rect x="3" y="4" width="8" height="1" fill="#F08A4B"/><rect x="0" y="5" width="2" height="1" fill="#F08A4B"/><rect x="2" y="5" width="1" height="1" fill="#1A1A1E"/><rect x="3" y="5" width="8" height="1" fill="#F08A4B"/><rect x="1" y="6" width="11" height="1" fill="#F08A4B"/><rect x="2" y="7" width="6" height="1" fill="#F08A4B"/><rect x="10" y="7" width="2" height="1" fill="#F08A4B"/><rect x="3" y="8" width="4" height="1" fill="#F08A4B"/><rect x="11" y="8" width="1" height="1" fill="#F08A4B"/><rect x="4" y="9" width="2" height="1" fill="#F08A4B"/></svg></span><div><div class="dt-title"><span class="dt-brand">aura<i>.txt</i><sup>™</sup></span></div><div class="dt-caption">Студийная обработка голоса с микрофона</div></div></div>
+      <div class="dt-status dt-status--ok">Версия 0.26.2 · запущено</div>
+      <div class="actions"><button class="dt-btn">Открыть</button></div>
+    </div>
+    <div class="dt-block dt-block--card card">
+      <div class="head"><span class="dt-tile"><svg viewBox="0 -2 12 12" shape-rendering="crispEdges"><rect x="0" y="0" width="1" height="1" fill="#F08A4B"/><rect x="11" y="0" width="1" height="1" fill="#F08A4B"/><rect x="0" y="1" width="2" height="1" fill="#F08A4B"/><rect x="10" y="1" width="2" height="1" fill="#F08A4B"/><rect x="0" y="2" width="12" height="1" fill="#F08A4B"/><rect x="0" y="3" width="3" height="1" fill="#F08A4B"/><rect x="3" y="3" width="1" height="1" fill="#1A1A1E"/><rect x="4" y="3" width="4" height="1" fill="#F08A4B"/><rect x="8" y="3" width="1" height="1" fill="#1A1A1E"/><rect x="9" y="3" width="3" height="1" fill="#F08A4B"/><rect x="0" y="4" width="3" height="1" fill="#F08A4B"/><rect x="3" y="4" width="1" height="1" fill="#1A1A1E"/><rect x="4" y="4" width="4" height="1" fill="#F08A4B"/><rect x="8" y="4" width="1" height="1" fill="#1A1A1E"/><rect x="9" y="4" width="3" height="1" fill="#F08A4B"/><rect x="0" y="5" width="12" height="1" fill="#F08A4B"/><rect x="1" y="6" width="4" height="1" fill="#F08A4B"/><rect x="7" y="6" width="4" height="1" fill="#F08A4B"/><rect x="2" y="7" width="2" height="1" fill="#F08A4B"/><rect x="8" y="7" width="2" height="1" fill="#F08A4B"/></svg></span><div><div class="dt-title"><span class="dt-brand">maska<i>.txt</i><sup>™</sup></span></div><div class="dt-caption">Ваш облик и звонки для Discord</div></div></div>
+      <div class="dt-status dt-status--warn">Есть обновление 0.2.0</div>
+      <div class="actions"><button class="dt-btn">Открыть</button><button class="dt-btn dt-btn--primary" style="--dt-tint: var(--dt-purple)">Обновить</button></div>
+    </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="dt-heading">Кнопки</div>
+    <div class="line">
+      <button class="dt-btn">Обычная</button>
+      <button class="dt-btn dt-btn--primary">Главная</button>
+      <button class="dt-btn dt-btn--primary" style="--dt-tint: var(--dt-brand)">Главная в цвете продукта</button>
+      <button class="dt-btn" disabled>Недоступна</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="dt-heading">Переключатели</div>
+    <div class="rows">
+      <div class="dt-row setting"><div>Меньше движения<div class="dt-micro">Без пружин и плавных переходов</div></div><label class="dt-switch"><input type="checkbox" checked><i></i></label></div>
+      <div class="dt-row setting"><div>Запускать вместе с Windows</div><label class="dt-switch"><input type="checkbox"><i></i></label></div>
+    </div>
+    <div class="line">
+      <div class="dt-seg" role="radiogroup"><button role="radio" aria-checked="true">Тёмная</button><button role="radio" aria-checked="false">Светлая</button><button role="radio" aria-checked="false">Как в системе</button></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="dt-heading">Состояния и ход</div>
+    <div class="line">
+      <span class="dt-status">Не установлено</span>
+      <span class="dt-status dt-status--ok">Подключено</span>
+      <span class="dt-status dt-status--warn">Есть обновление</span>
+      <span class="dt-status dt-status--bad">Нет связи с GitHub</span>
+      <span class="dt-tip">Подсказка: тёмное стекло, углы 9</span>
+    </div>
+    <div class="dt-progress" style="--value: 0.42; --dt-tint: var(--dt-brand)"></div>
+  </section>
+
+  <section>
+    <div class="dt-heading">Текст</div>
+    <div class="dt-block">
+      <div class="dt-display">Заголовок страницы — 26</div>
+      <div class="dt-title">Заголовок — 17</div>
+      <div class="dt-heading">Заголовок блока — 13.5</div>
+      <div>Основной текст — 12.5</div>
+      <div class="dt-caption">Подпись — 11.5</div>
+      <div class="dt-micro">Мелкая подпись — 10.5</div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
