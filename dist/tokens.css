@@ -30,6 +30,7 @@
   --dt-dur-base: 230ms;
   --dt-dur-slow: 380ms;
   --dt-dur-reveal: 560ms;
+  --dt-stagger: 45ms;
   --dt-bg: #09090D;
   --dt-surface: #151518;
   --dt-raised: #2C2C31;
@@ -79,5 +80,6 @@
     --dt-dur-base: 0ms;
     --dt-dur-slow: 0ms;
     --dt-dur-reveal: 0ms;
+    --dt-stagger: 0ms;
   }
 }

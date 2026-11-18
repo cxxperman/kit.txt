@@ -131,3 +131,49 @@
   border: 1px solid rgb(255 255 255 / 0.08); border-top-color: rgb(255 255 255 / 0.28);
   box-shadow: 0 3px 14px rgb(0 0 0 / 0.42); font-size: 12px;
 }
+
+/* ───────── Движение ─────────
+ * Общие приёмы; все длительности — из токенов, поэтому при «Меньше движения» они сами становятся мгновенными. */
+
+/* Появление по очереди: дети поднимаются и проявляются волной. Порядок — через --i на ребёнке
+ * (<div style="--i: 2">) или сам собой для первых двенадцати. */
+@keyframes dt-rise { from { opacity: 0; transform: translateY(12px); } }
+.dt-stagger > * { animation: dt-rise var(--dt-dur-slow) var(--dt-ease-out) both; animation-delay: calc(var(--i, 0) * var(--dt-stagger)); }
+.dt-stagger > :nth-child(2) { --i: 1; } .dt-stagger > :nth-child(3) { --i: 2; } .dt-stagger > :nth-child(4) { --i: 3; }
+.dt-stagger > :nth-child(5) { --i: 4; } .dt-stagger > :nth-child(6) { --i: 5; } .dt-stagger > :nth-child(7) { --i: 6; }
+.dt-stagger > :nth-child(8) { --i: 7; } .dt-stagger > :nth-child(9) { --i: 8; } .dt-stagger > :nth-child(10) { --i: 9; }
+.dt-stagger > :nth-child(11) { --i: 10; } .dt-stagger > :nth-child(n + 12) { --i: 11; }
+
+/* Вырастание из точки: окно или меню появляется из того места, по которому щёлкнули.
+ * Точку задают --from-x / --from-y (в процентах или пикселях от левого верхнего угла). */
+@keyframes dt-grow { from { opacity: 0; transform: scale(0.86); } }
+.dt-grow { transform-origin: var(--from-x, 50%) var(--from-y, 50%); animation: dt-grow var(--dt-dur-base) var(--dt-ease-out) both; }
+
+/* Набегающее число: <span class="dt-count" style="--to: 66"></span> считает от 0 до --to. */
+@property --dt-n { syntax: '<integer>'; inherits: false; initial-value: 0; }
+@keyframes dt-count { from { --dt-n: 0; } to { --dt-n: var(--to, 0); } }
+.dt-count { animation: dt-count calc(var(--dt-dur-reveal) * 2) var(--dt-ease-out) both; counter-reset: dt-n var(--dt-n); font-variant-numeric: tabular-nums; }
+.dt-count::after { content: counter(dt-n); }
+
+/* Стопка карточек с наклоном: выбор из нескольких вариантов (обои, темы). Положение карточки — --at:
+ * 0 — выбранная, −1 и 1 — соседи и так далее.
+ * <div class="dt-stack"><div style="--at: -1">…</div><div style="--at: 0" aria-current="true">…</div>…</div> */
+.dt-stack { position: relative; display: grid; place-items: center; height: 220px; }
+.dt-stack > * {
+  grid-area: 1 / 1; width: 300px; height: 180px; border-radius: var(--dt-radius-block); overflow: hidden;
+  border: 1px solid var(--dt-edge); border-top-color: var(--dt-edge-top); background: var(--dt-surface);
+  --d: max(var(--at), calc(var(--at) * -1));
+  transform: translateX(calc(var(--at) * 96px)) scale(calc(1 - var(--d) * 0.12)) skewX(calc(var(--at) * -4deg));
+  opacity: calc(1 - var(--d) * 0.28); z-index: calc(10 - var(--d));
+  transition: transform var(--dt-dur-slow) var(--dt-ease-out), opacity var(--dt-dur-slow) var(--dt-ease-out);
+}
+
+/* Полоса шагов: «3 из 9» — пройденные сегменты залиты. <div class="dt-steps"><i class="on"></i><i class="on"></i><i></i></div> */
+.dt-steps { display: flex; gap: 5px; }
+.dt-steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--dt-fill-2); transition: background var(--dt-dur-base) var(--dt-ease-out); }
+.dt-steps i.on { background: var(--dt-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-stagger > *, .dt-grow { animation: none; }
+  .dt-count { animation-duration: 1ms; }
+}

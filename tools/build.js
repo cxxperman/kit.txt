@@ -46,13 +46,14 @@ function buildCss() {
   for (const [k, v] of Object.entries(t.font.size)) base.push(`--dt-size-${kebab(k)}: ${v}px;`);
   base.push(`--dt-ease-out: cubic-bezier(${t.motion.easeOut.join(', ')});`);
   for (const [k, v] of Object.entries(t.motion.duration)) base.push(`--dt-dur-${kebab(k)}: ${v}ms;`);
+  base.push(`--dt-stagger: ${t.motion.stagger}ms;`);
 
   const block = (sel, lines) => `${sel} {\n${lines.map(l => '  ' + l).join('\n')}\n}\n`;
   return [
     `/* Generated from tokens/tokens.json (v${t.version}) by tools/build.js. Do not edit by hand. */\n`,
     block(':root', ['color-scheme: dark;', ...base, ...cssTheme('dark')]),
     block(":root[data-theme='light']", ['color-scheme: light;', ...cssTheme('light')]),
-    block('@media (prefers-reduced-motion: reduce)', [':root {', ...Object.keys(t.motion.duration).map(k => `  --dt-dur-${kebab(k)}: 0ms;`), '}']),
+    block('@media (prefers-reduced-motion: reduce)', [':root {', ...Object.keys(t.motion.duration).map(k => `  --dt-dur-${kebab(k)}: 0ms;`), '  --dt-stagger: 0ms;', '}']),
   ].join('\n');
 }
 
@@ -98,6 +99,7 @@ function buildCs() {
   cls('Motion', () => {
     L.push(`            public static readonly double[] EaseOut = { ${t.motion.easeOut.map(num).join(', ')} };`);
     for (const [k, v] of Object.entries(t.motion.duration)) L.push(`            public const int ${pascal(k)}Ms = ${v};`);
+    L.push(`            public const int StaggerMs = ${t.motion.stagger};`);
     for (const [k, v] of Object.entries(t.motion.spring)) {
       dbl('spring' + pascal(k) + 'Stiffness', v[0]);
       dbl('spring' + pascal(k) + 'Damping', v[1]);

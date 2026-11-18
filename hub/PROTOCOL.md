@@ -148,6 +148,34 @@ core.txt подключён к хабу как приложение `core`. Ко
 - `{ "type": "ping" }` → `{ "type": "pong" }`.
 - `{ "type": "bye" }` — приложение закрывается, хаб сразу забывает его.
 
+## Кто что сообщает
+
+Что приложения экосистемы уже отдают в хаб. Состояние хаб помнит, событие — нет.
+
+| Приложение | Состояния | События | Команды |
+|---|---|---|---|
+| `core` | — | — | `show` |
+| `kapsula` | `kapsula.settings`, `kapsula.media`, `kapsula.weather`, `kapsula.calendar`, `kapsula.unread`, `kapsula.system` | — | `settings.set`, `show`, `media.toggle`, `media.prev`, `media.next` |
+| `aura` | `aura.settings`, `aura.voice` | — | `settings.set`, `show` |
+| `maska` | `maska.settings`, `maska.voice` | — | `settings.set`, `voice.mute`, `voice.deafen`, `voice.leave`, `call.accept`, `call.decline` |
+| `arkada` | `arkada.settings`, `arkada.game`, `arkada.downloads`, `arkada.friends` | `arkada.achievement`, `arkada.invite`, `arkada.message` | `settings.set`, `game.launch`, `library.open`, `invite.accept` |
+| `dock` | `dock.settings`, `dock.apps`, `dock.widgets` | — | `settings.set` |
+| `smena` | `smena.settings` | — | `settings.set`, `show` |
+| `metla` | `metla.settings`, `metla.found` | — | `settings.set`, `show` |
+
+Поля, на которые уже опираются другие приложения (менять их смысл нельзя, добавлять новые — можно):
+
+- `kapsula.media`: `{ "playing", "title", "artist", "app" }` или `null`.
+- `kapsula.weather`: `{ "temp", "text", "icon": "clear"|"cloudy"|"rain"|"snow"|"storm"|"fog", "city" }` или `null`.
+- `kapsula.calendar`: `{ "events": [ { "title", "start": "ЧЧ:мм", "end": "ЧЧ:мм", "allDay"? } ] }` или `null`.
+- `kapsula.unread`: `{ "total", "apps": { "discord", "steam" } }` или `null`.
+- `kapsula.system`: `{ "cpu", "ram", "gpu", "down", "up" }` — только пока открыта вкладка «Система» или показана нагрузка в игре.
+- `aura.voice`: `{ "on", "mute", "preset", "presetName", "voice" }`.
+- `maska.voice`: `{ "inCall", "channel", "mute", "deaf", "video", "speaking", "since", "incoming", … }` или `null`.
+- `arkada.game`: `{ "appId", "name", "since" }` или `null`.
+
+Приложение без кнопок-действий в настройках отвечает на `settings.run` ошибкой — это нормально. Страница внутри Discord или Steam не может стать светлой по `hub.theme.mode`: она следует только акценту и «Меньше движения».
+
 ## Доставка по HTTP
 
 ```
