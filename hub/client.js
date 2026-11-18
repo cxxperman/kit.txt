@@ -106,10 +106,23 @@ function wsTransport(port, on) {
     let s;
     try { s = new WebSocket('ws://127.0.0.1:' + port + '/hub'); } catch (e) { return retry(); }
     ws = s;
-    s.onopen = () => { wait.reset(); on.open(); };
+    // A connection can end three ways: a close, an error with no close after it (a refused
+    // connection in Node), or silence (a hub that never answers). Each of them leads here, once.
+    let over = false;
+    const lost = () => {
+      if (over) return;
+      over = true;
+      clearTimeout(guard);
+      if (ws === s) ws = null;
+      try { s.close(); } catch (e) {}
+      on.close();
+      retry();
+    };
+    const guard = setTimeout(() => { if (s.readyState !== 1) lost(); }, 5000);
+    s.onopen = () => { clearTimeout(guard); wait.reset(); on.open(); };
     s.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } on.message(m); };
-    s.onerror = () => {};
-    s.onclose = () => { if (ws !== s) return; ws = null; on.close(); retry(); };
+    s.onerror = lost;
+    s.onclose = lost;
   }
   function retry() { if (!stopped && !timer) timer = setTimeout(open, wait.next()); }
   open();
@@ -157,7 +170,8 @@ function httpTransport(port, on) {
     out = [];
     const r = await request('POST', '/hub/http', { client, messages: batch }, 5000);
     busy = false;
-    if (stopped || mine !== gen) return;
+    if (stopped) return;
+    if (mine !== gen) return flush(); // the connection was lost meanwhile: what is queued now is the new hello
     if (!r || r.status !== 200 || !r.json) return lost();
     wait.reset();
     const first = client === null;

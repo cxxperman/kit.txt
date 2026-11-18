@@ -125,8 +125,12 @@ namespace DevTxt
         }
 
         // Свечение за стеклом: три цветных пятна на тёмном фоне. Кладётся первым в корень окна.
-        public static Canvas Backdrop()
+        public static Canvas Backdrop() { return Backdrop(920, 640); }
+
+        // То же для окна другого размера: пятна расставляются в тех же долях ширины и высоты
+        public static Canvas Backdrop(double width, double height)
         {
+            double kx = width / 920, ky = height / 640, k = Math.Max(kx, ky);
             var glow = new Canvas { IsHitTestVisible = false };
             Action<double, double, double, Color, double> blob = delegate(double x, double y, double size, Color c, double a)
             {
@@ -135,8 +139,10 @@ namespace DevTxt
                 fill.GradientStops.Add(new GradientStop(Alpha(c, a * 0.55), 0.45));
                 fill.GradientStops.Add(new GradientStop(Alpha(c, 0), 1));
                 fill.Freeze();
-                var e = new Ellipse { Width = size, Height = size, Fill = fill };
-                Canvas.SetLeft(e, x); Canvas.SetTop(e, y);
+                // центр пятна — в той же доле окна, размер — по большей стороне
+                double side = size * k;
+                var e = new Ellipse { Width = side, Height = side, Fill = fill };
+                Canvas.SetLeft(e, (x + size / 2) * kx - side / 2); Canvas.SetTop(e, (y + size / 2) * ky - side / 2);
                 glow.Children.Add(e);
             };
             blob(-380, -420, 1000, Tokens.Palette.Brand, 0.42);
@@ -294,7 +300,7 @@ namespace DevTxt
 
         public Status()
         {
-            DockPanel.SetDock(dot, Dock.Left);
+            DockPanel.SetDock(dot, System.Windows.Controls.Dock.Left);   // полное имя: у приложения может быть своё пространство имён «Dock»
             Root.Children.Add(dot);
             Root.Children.Add(text);
         }

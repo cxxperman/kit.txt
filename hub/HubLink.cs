@@ -36,9 +36,9 @@ namespace DevTxt
         volatile bool stopped, online;
 
         public string[] Topics = new string[0], Commands = new string[0];
-        public Func<string, Dictionary<string, object>, string, object> OnCommand;   // (команда, аргументы, от кого) → данные ответа
-        public Action<string, object, string> OnState, OnEvent;                      // (тема, данные, от кого)
-        public Action<bool> OnStatus;
+        public Func<string, Dictionary<string, object>, string, object> OnCommand = null;   // (команда, аргументы, от кого) → данные ответа
+        public Action<string, object, string> OnState = null, OnEvent = null;                      // (тема, данные, от кого)
+        public Action<bool> OnStatus = null;
 
         public HubLink(string app, string name, string version) : this(app, name, version, DefaultPort) { }
         public HubLink(string app, string name, string version, int port) { this.app = app; this.name = name; this.version = version; this.port = port; }

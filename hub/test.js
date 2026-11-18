@@ -142,6 +142,30 @@ async function reconnects() {
   await server.stop();
 }
 
+// The hub as a separate process that is killed outright — the way core.txt dies when it crashes or the
+// computer goes to sleep at a bad moment. Nothing says goodbye; both transports must notice and come back.
+async function survivesKill() {
+  const { spawn } = require('child_process');
+  const port = 48990 + Math.floor(Math.random() * 9);
+  const run = () => spawn(process.execPath, [require('path').join(__dirname, 'hub.js'), String(port)], { stdio: 'ignore' });
+  let child = run();
+  try {
+    const aura = app(port, 'aura', 'ws');
+    const maska = app(port, 'maska', 'http', { topics: ['aura.*'] });
+    await until('both online', () => aura.seen.online && maska.seen.online, 8000);
+    aura.hub.state('aura.fx', { on: true });
+    await until('state arrives', () => maska.seen.states.has('aura.fx'));
+    child.kill();
+    await until('both notice', () => !aura.seen.online && !maska.seen.online, 40000);
+    await new Promise(r => setTimeout(r, 2500)); // a few attempts fail while the hub is down
+    maska.seen.states.clear();
+    child = run();
+    await until('both come back', () => aura.seen.online && maska.seen.online, 30000);
+    await until('state is repeated', () => maska.seen.states.has('aura.fx'));
+    aura.hub.close(); maska.hub.close();
+  } finally { child.kill(); }
+}
+
 (async () => {
   let failed = 0;
   const run = async (name, fn) => {
@@ -154,6 +178,7 @@ async function reconnects() {
     await server.stop();
   }
   if (!external) await run('clients reconnect when the hub restarts', reconnects);
+  if (!external) await run('clients come back after the hub process is killed', survivesKill);
   console.log(failed ? `\n${failed} failed` : '\nall passed');
   process.exit(failed ? 1 : 0);
 })();
