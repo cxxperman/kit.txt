@@ -155,13 +155,13 @@ core.txt подключён к хабу как приложение `core`. Ко
 | Приложение | Состояния | События | Команды |
 |---|---|---|---|
 | `core` | `core.family` | — | `show`, `focus.set` |
-| `kapsula` | `kapsula.settings`, `kapsula.tray`, `kapsula.keys`, `kapsula.media`, `kapsula.weather`, `kapsula.calendar`, `kapsula.unread`, `kapsula.system` | — | `settings.set`, `show`, `tray.run`, `notify`, `media.toggle`, `media.prev`, `media.next` |
-| `aura` | `aura.settings`, `aura.tray`, `aura.keys`, `aura.voice` | — | `settings.set`, `show`, `tray.run` |
+| `kapsula` | `kapsula.settings`, `kapsula.tray`, `kapsula.keys`, `kapsula.media`, `kapsula.weather`, `kapsula.calendar`, `kapsula.unread`, `kapsula.system` | — | `settings.set`, `show`, `tray.run`, `notify`, `quit`, `media.toggle`, `media.prev`, `media.next` |
+| `aura` | `aura.settings`, `aura.tray`, `aura.keys`, `aura.voice` | — | `settings.set`, `show`, `tray.run`, `quit` |
 | `maska` | `maska.settings`, `maska.voice` | — | `settings.set`, `voice.mute`, `voice.deafen`, `voice.leave`, `call.accept`, `call.decline` |
 | `arkada` | `arkada.settings`, `arkada.game`, `arkada.downloads`, `arkada.friends` | `arkada.achievement`, `arkada.invite`, `arkada.message` | `settings.set`, `game.launch`, `library.open`, `invite.accept` |
-| `dock` | `dock.settings`, `dock.tray`, `dock.keys`, `dock.apps`, `dock.widgets` | — | `settings.set`, `tray.run` |
-| `smena` | `smena.settings`, `smena.tray`, `smena.keys` | — | `settings.set`, `show`, `tray.run` |
-| `metla` | `metla.settings`, `metla.tray`, `metla.found` | — | `settings.set`, `show`, `tray.run` |
+| `dock` | `dock.settings`, `dock.tray`, `dock.keys`, `dock.apps`, `dock.widgets` | — | `settings.set`, `tray.run`, `quit` |
+| `smena` | `smena.settings`, `smena.tray`, `smena.keys` | — | `settings.set`, `show`, `tray.run`, `quit` |
+| `metla` | `metla.settings`, `metla.tray`, `metla.found` | — | `settings.set`, `show`, `tray.run`, `quit` |
 
 Поля, на которые уже опираются другие приложения (менять их смысл нельзя, добавлять новые — можно):
 
@@ -224,6 +224,7 @@ core.txt подключён к хабу как приложение `core`. Ко
 - Подписи без названия приложения: оно уже стоит над пунктами. Первым идёт `{ "key": "show", "label": "Открыть" }`, если у приложения есть окно.
 - «Запускать вместе с Windows», «Проверить обновления», «Не беспокоить», «Открыть core.txt» и «Выход» в `tray` не кладут: в меню core.txt эти пункты общие.
 - Выполнив пункт, приложение присылает `<приложение>.tray` заново, с новыми галочками.
+- Приложение, которое объявило команду `quit`, получает в своём разделе меню core.txt пункт «Закрыть»: core.txt присылает `quit`, приложение отвечает и закрывается. Пока значок у core.txt, это единственный выход из приложения — команду `quit` объявляют все приложения со своим значком (в C# — третий аргумент `new Family(link, app, quit)`).
 - Пока `core.family.tray` — `true` и связь есть, своего значка у приложения нет. Связь пропала — значок появляется сразу, с полным своим меню: без входа приложение не остаётся никогда.
 
 ### Уведомления — на острове
