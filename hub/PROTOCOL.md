@@ -156,7 +156,7 @@ core.txt подключён к хабу как приложение `core`. Ко
 |---|---|---|---|
 | `core` | `core.family` | — | `show`, `focus.set` |
 | `kapsula` | `kapsula.settings`, `kapsula.tray`, `kapsula.keys`, `kapsula.media`, `kapsula.weather`, `kapsula.calendar`, `kapsula.unread`, `kapsula.system` | — | `settings.set`, `show`, `tray.run`, `notify`, `quit`, `media.toggle`, `media.prev`, `media.next` |
-| `aura` | `aura.settings`, `aura.tray`, `aura.keys`, `aura.voice` | — | `settings.set`, `show`, `tray.run`, `quit` |
+| `aura` | `aura.settings`, `aura.tray`, `aura.keys`, `aura.voice`, `aura.sounds`, `aura.effects`, `aura.party` | — | `settings.set`, `show`, `tray.run`, `quit`, `sounds.play`, `sounds.stop`, `effects.set`, `effects.off`, `party.start`, `party.stop`, `party.answer` |
 | `maska` | `maska.settings`, `maska.voice` | — | `settings.set`, `voice.mute`, `voice.deafen`, `voice.leave`, `call.accept`, `call.decline` |
 | `arkada` | `arkada.settings`, `arkada.game`, `arkada.downloads`, `arkada.friends` | `arkada.achievement`, `arkada.invite`, `arkada.message` | `settings.set`, `game.launch`, `library.open`, `invite.accept` |
 | `dock` | `dock.settings`, `dock.tray`, `dock.keys`, `dock.apps`, `dock.widgets` | — | `settings.set`, `tray.run`, `quit` |
@@ -171,8 +171,27 @@ core.txt подключён к хабу как приложение `core`. Ко
 - `kapsula.unread`: `{ "total", "apps": { "discord", "steam" } }` или `null`.
 - `kapsula.system`: `{ "cpu", "ram", "gpu", "down", "up" }` — только пока открыта вкладка «Система» или показана нагрузка в игре.
 - `aura.voice`: `{ "on", "mute", "preset", "presetName", "voice" }`.
+- `aura.sounds`: `{ "mic", "pads": [ { "id", "name" } ], "playing": [ id ] }` — `mic: false`: модуль не встроен в микрофон, звук слышит только сам человек; `playing` — какие звуки сейчас звучат.
+- `aura.effects`: `{ "mic", "active": id | null, "items": [ { "id", "name" } ] }` — готовые голоса; `active: null` — ни один не включён.
+- `aura.party`: `{ "enabled", "canHost", "role": null | "host" | "guest", "code", "people", "asking": [ { "id", "name" } ] }` — `enabled`: раздел «Пати» включён в aura.txt; `canHost: false` — пати не создать, модуль не встроен в микрофон; `code` — код для друзей, только у хоста; `people` — сколько гостей впущено, считает только хост; `asking` — кто просится войти, только у хоста.
 - `maska.voice`: `{ "inCall", "channel", "mute", "deaf", "video", "speaking", "since", "incoming", … }` или `null`.
 - `arkada.game`: `{ "appId", "name", "since" }` или `null`.
+
+Команды aura.txt для звуков, эффектов и пати. Окно aura.txt для них открывать не нужно и само оно не показывается — достаточно, чтобы aura.txt была запущена:
+
+| Команда | `args` | Что делает | `data` в ответе |
+|---|---|---|---|
+| `sounds.play` | `{ "id" }` | играет звук, как нажатие на него в окне | `null` |
+| `sounds.stop` | — | останавливает все звуки | `null` |
+| `effects.set` | `{ "id" }` | включает готовый голос; `null` или `"none"` — выключает | `null` |
+| `effects.off` | — | выключает готовый голос | `null` |
+| `party.start` | — | создаёт пати хостом; выключенный раздел «Пати» включает сама | `{ "code" }` |
+| `party.stop` | — | закрывает пати или выходит из неё | `null` |
+| `party.answer` | `{ "id", "ok" }` | впускает того, кто просится (`asking`), или отказывает | `null` |
+
+Ошибки — обычным образом, `"ok": false` и текст: `такого звука нет`, `такого эффекта нет`, `aura.txt не встроена в микрофон`, `пати уже идёт`, `пати не идёт`, `такого человека нет`. `party.start` ждёт сеть и может отвечать до 30 секунд — отправитель ставит своё ожидание не меньше (обычные 5 секунд дадут `timeout`, хотя пати создастся).
+
+Гости слышат не голос хоста, а звук окна пати или выбранной программы — их выбирают в окне aura.txt. Пати, созданная командой, пока это не выбрано, для гостей молчит (если окно пати уже было открыто — звучит сразу); голоса гостей при этом идут в микрофон хоста сразу.
 
 Приложение без кнопок-действий в настройках отвечает на `settings.run` ошибкой — это нормально. Страница внутри Discord или Steam не может стать светлой по `hub.theme.mode`: она следует только акценту и «Меньше движения».
 
