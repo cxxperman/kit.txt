@@ -178,7 +178,15 @@ namespace DevTxt
         // «Быстрый вход» Windows: cubic-bezier(0, 0, 0, 1) — резкий старт и долгое мягкое торможение
         public static IEasingFunction EaseOut { get { return new ExponentialEase { EasingMode = EasingMode.EaseOut, Exponent = 7 }; } }
         // «Меньше движения»: системная настройка Windows; приложение может включить и само
-        public static bool ForceReducedMotion = false;
+        // Смена режима — событие MotionChanged: бесконечное движение (дыхание, мерцание, бегущая полоса) по нему
+        // останавливается или идёт снова, а не доживает до конца работы в том режиме, в каком началось
+        static bool forceReduced;
+        public static bool ForceReducedMotion
+        {
+            get { return forceReduced; }
+            set { if (forceReduced == value) return; forceReduced = value; if (MotionChanged != null) MotionChanged(); }
+        }
+        public static event Action MotionChanged;
         public static bool ReducedMotion { get { return ForceReducedMotion || !SystemParameters.ClientAreaAnimation; } }
         // Можно ли двигать элемент: он в настоящем окне (а не в снимке) и движение не выключено
         public static bool Live(Visual v) { return !ReducedMotion && v != null && PresentationSource.FromVisual(v) != null; }
@@ -593,7 +601,7 @@ namespace DevTxt
             fill = new Border { Height = 3, CornerRadius = new CornerRadius(1.5), Background = Ui.AccentBrush, HorizontalAlignment = HorizontalAlignment.Left, Width = 0, RenderTransform = slide };
             var track = new Border { Height = 1, Background = Ui.Label3, VerticalAlignment = VerticalAlignment.Center };
             Root = new Border { Height = 3, Background = Brushes.Transparent, Child = new Grid { Children = { track, fill } }, ClipToBounds = true };
-            Root.SizeChanged += delegate { if (busy) Run(); else Apply(false); };
+            Root.SizeChanged += delegate { if (busy) Motion.Loop(Root, true, Run); else Apply(false); };
         }
 
         // Заливка доезжает до нового значения плавно; назад (новая загрузка) — сразу
@@ -609,12 +617,16 @@ namespace DevTxt
             fill.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(to, TimeSpan.FromMilliseconds(Tokens.Motion.BaseMs)) { EasingFunction = Ui.EaseOut });
         }
 
-        void Run()
+        // moving — полоска бегает; иначе (окно спрятано, «Меньше движения», снимок) стоит
+        void Run(bool moving)
         {
             double w = Root.ActualWidth;
+            slide.BeginAnimation(TranslateTransform.XProperty, null);
+            if (!busy) { slide.X = 0; Apply(false); return; }
             fill.BeginAnimation(FrameworkElement.WidthProperty, null);
-            if (!Ui.Live(Root) || w <= 0) { slide.BeginAnimation(TranslateTransform.XProperty, null); slide.X = 0; fill.Width = w; return; }
             fill.Width = w * 0.3;
+            // Неподвижно — отрезок посередине, а не вся полоса: залитая целиком читалась бы как «готово»
+            if (!moving || w <= 0) { slide.X = w * 0.35; return; }
             slide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(-w * 0.3, w, TimeSpan.FromMilliseconds(1100)) { RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
         }
 
@@ -638,10 +650,7 @@ namespace DevTxt
             {
                 if (busy == value) return;
                 busy = value;
-                if (busy) { Run(); return; }
-                slide.BeginAnimation(TranslateTransform.XProperty, null);
-                slide.X = 0;
-                Apply(false);
+                Motion.Loop(Root, busy, Run);
             }
         }
     }
@@ -923,12 +932,21 @@ namespace DevTxt
             b.MouseLeftButtonDown += delegate { b.Background = Ui.Press; };   // нажатие видно сразу, как в навигации Windows
             b.MouseLeftButtonUp += delegate { Pick(n); b.Background = n == selected ? Ui.Fill : Brushes.Transparent; };
             Ui.Keyboard(b, delegate { Pick(n); });
-            items.Add(b); pills.Add(pill);
+            items.Add(b); pills.Add(pill); labels.Add(label);
             nav.Children.Add(b);
             return n;
         }
 
-        public void Clear() { nav.Children.Clear(); items.Clear(); pills.Clear(); selected = -1; }
+        // Список собирают заново (появилось или пропало приложение) — выбранный раздел при этом тот же, и его
+        // полоска не должна «хлопать», будто выбор сменился. Помним, какой раздел был выбран до пересборки.
+        readonly System.Collections.Generic.List<string> labels = new System.Collections.Generic.List<string>();
+        string keep;
+
+        public void Clear()
+        {
+            keep = selected >= 0 && selected < labels.Count ? labels[selected] : null;
+            nav.Children.Clear(); items.Clear(); pills.Clear(); labels.Clear(); selected = -1;
+        }
 
         void Pick(int n)
         {
@@ -944,11 +962,13 @@ namespace DevTxt
             set
             {
                 selected = value;
+                string same = keep;
+                keep = null;
                 for (int i = 0; i < items.Count; i++)
                 {
                     bool on = i == selected;
                     items[i].Background = on ? (items[i].IsMouseOver ? Ui.Fill2 : Ui.Fill) : (items[i].IsMouseOver ? Ui.Fill : Brushes.Transparent);
-                    bool was = pills[i].Visibility == Visibility.Visible;
+                    bool was = pills[i].Visibility == Visibility.Visible || labels[i] == same;
                     pills[i].Visibility = on ? Visibility.Visible : Visibility.Hidden;
                     if (on && !was) Motion.Pop(pills[i]);
                 }
@@ -1217,6 +1237,25 @@ namespace DevTxt
     {
         static IEasingFunction Out() { return Ui.EaseOut; }
 
+        // Вход «откуда-то к себе»: от from к тому, что у свойства стоит без анимации, и потом свойство отпускается
+        // (FillBehavior.Stop). Конец совпадает с базовым значением — мигания нет, а то, что приложение пишет
+        // в свойство после (приглушение нажатой кнопки), снова видно. Держать конец (HoldEnd) — значит навсегда
+        // перекрыть эти записи.
+        static DoubleAnimation From(double from, double ms)
+        {
+            return new DoubleAnimation { From = from, Duration = Ms(ms), EasingFunction = Out(), FillBehavior = FillBehavior.Stop };
+        }
+
+        // То же с задержкой: до начала свойство стоит на from (а не на базовом значении, как было бы с BeginTime)
+        static DoubleAnimationUsingKeyFrames From(double from, double to, double delayMs, double ms)
+        {
+            var a = new DoubleAnimationUsingKeyFrames { FillBehavior = FillBehavior.Stop };
+            a.KeyFrames.Add(new DiscreteDoubleKeyFrame(from, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            if (delayMs > 0) a.KeyFrames.Add(new DiscreteDoubleKeyFrame(from, KeyTime.FromTimeSpan(Ms(delayMs))));
+            a.KeyFrames.Add(new EasingDoubleKeyFrame(to, KeyTime.FromTimeSpan(Ms(delayMs + ms)), Out()));
+            return a;
+        }
+
         // Появление по очереди: дети поднимаются и проявляются волной, сосед за соседом
         public static void Stagger(Panel panel)
         {
@@ -1225,13 +1264,12 @@ namespace DevTxt
             foreach (UIElement child in panel.Children)
             {
                 if (child.Visibility != Visibility.Visible) continue;
-                var shift = new TranslateTransform(0, 12);
+                var shift = new TranslateTransform();
                 child.RenderTransform = shift;
-                child.Opacity = 0;
-                var begin = TimeSpan.FromMilliseconds(Math.Min(i, 11) * Tokens.Motion.StaggerMs);
-                var time = TimeSpan.FromMilliseconds(Tokens.Motion.SlowMs);
-                shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, 0, time) { BeginTime = begin, EasingFunction = Out() });
-                child.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, time) { BeginTime = begin, EasingFunction = Out() });
+                double rest = (double)child.GetAnimationBaseValue(UIElement.OpacityProperty);
+                double begin = Math.Min(i, 11) * Tokens.Motion.StaggerMs;
+                shift.BeginAnimation(TranslateTransform.YProperty, From(12, 0, begin, Tokens.Motion.SlowMs));
+                child.BeginAnimation(UIElement.OpacityProperty, From(0, rest, begin, Tokens.Motion.SlowMs));
                 i++;
             }
         }
@@ -1241,13 +1279,12 @@ namespace DevTxt
         public static void GrowFrom(FrameworkElement element, Point origin)
         {
             if (!Ui.Live(element)) return;
-            var scale = new ScaleTransform(0.86, 0.86);
+            var scale = new ScaleTransform(1, 1);
             element.RenderTransformOrigin = origin;
             element.RenderTransform = scale;
-            var time = TimeSpan.FromMilliseconds(Tokens.Motion.BaseMs);
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.86, 1, time) { EasingFunction = Out() });
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.86, 1, time) { EasingFunction = Out() });
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, time) { EasingFunction = Out() });
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, From(0.86, Tokens.Motion.BaseMs));
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, From(0.86, Tokens.Motion.BaseMs));
+            element.BeginAnimation(UIElement.OpacityProperty, From(0, Tokens.Motion.BaseMs));
         }
 
         static TimeSpan Ms(double ms) { return TimeSpan.FromMilliseconds(ms); }
@@ -1268,10 +1305,14 @@ namespace DevTxt
             bool was = text.Text != "";
             text.Text = value;
             if (counting || !was || !Ui.Live(text)) return;
-            var shift = new TranslateTransform(0, 5);
+            // Надпись спрятана или как раз появляется и уходит — её движением занят Show: два приёма на одном
+            // элементе спорили бы за прозрачность и сдвиг
+            object m;
+            if (text.Visibility != Visibility.Visible || leaving.TryGetValue(text, out m)) return;
+            var shift = new TranslateTransform();
             text.RenderTransform = shift;
-            shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(5, 0, Ms(Tokens.Motion.FastMs)) { EasingFunction = Out() });
-            text.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, Ms(Tokens.Motion.FastMs)) { EasingFunction = Out() });
+            shift.BeginAnimation(TranslateTransform.YProperty, From(5, Tokens.Motion.FastMs));
+            text.BeginAnimation(UIElement.OpacityProperty, From(0, Tokens.Motion.FastMs));
         }
 
         // Хлопок: элемент выскакивает с лёгким перелётом — «готово», «получилось»
@@ -1286,18 +1327,80 @@ namespace DevTxt
             scale.BeginAnimation(ScaleTransform.ScaleYProperty, a);
         }
 
+        // Бесконечное движение помнит, что оно должно идти (Want), и идёт ли сейчас (Running). Пересчитывается,
+        // когда элемент прячут и показывают (окно ушло в трей и вернулось, страницу сменили) и когда меняется
+        // «Меньше движения», — а не только в момент включения: иначе работа, начатая при спрятанном окне, так и
+        // шла бы без движения, а при включённом «Меньше движения» значок дышал бы до конца работы.
+        class LoopState { public bool Want, Running; public Action<bool> Run; }
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<UIElement, LoopState> loops = new System.Runtime.CompilerServices.ConditionalWeakTable<UIElement, LoopState>();
+        // Кого пересчитать при смене режима. Ссылки слабые: карточку, которую заменили новой, список не держит
+        static readonly System.Collections.Generic.List<WeakReference> wanted = new System.Collections.Generic.List<WeakReference>();
+        static bool listening;
+
+        // Бесконечное движение элемента: on — должно идти. run(true) — запустить, run(false) — остановить и
+        // поставить неподвижный вид. Двигается, только пока элемент виден и движение не выключено.
+        public static void Loop(UIElement element, bool on, Action<bool> run)
+        {
+            LoopState l;
+            if (!loops.TryGetValue(element, out l))
+            {
+                l = new LoopState();
+                loops.Add(element, l);
+                var self = element;
+                element.IsVisibleChanged += delegate { Recheck(self, l); };   // элемент ушёл из дерева — тоже сюда: движение встаёт
+            }
+            if (!listening) { listening = true; Ui.MotionChanged += RecheckAll; }
+            if (on && !l.Want) wanted.Add(new WeakReference(element));
+            if (!on && l.Want) wanted.RemoveAll(delegate(WeakReference r) { object t = r.Target; return t == null || t == element; });
+            l.Want = on;
+            l.Run = run;
+            l.Running = on && Moving(element);
+            run(l.Running);
+        }
+
+        static bool Moving(UIElement element) { return element.IsVisible && Ui.Live(element); }
+
+        static void Recheck(UIElement element, LoopState l)
+        {
+            bool now = l.Want && Moving(element);
+            if (now == l.Running || l.Run == null) return;
+            l.Running = now;
+            l.Run(now);
+        }
+
+        static void RecheckAll()
+        {
+            foreach (WeakReference r in wanted.ToArray())
+            {
+                var e = r.Target as UIElement;
+                LoopState l;
+                if (e == null || !loops.TryGetValue(e, out l)) { wanted.Remove(r); continue; }
+                Recheck(e, l);
+            }
+        }
+
+        // Для проверок: должно ли идти бесконечное движение элемента и идёт ли оно сейчас
+        internal static bool Wants(UIElement element) { LoopState l; return loops.TryGetValue(element, out l) && l.Want; }
+        internal static bool Looping(UIElement element) { LoopState l; return loops.TryGetValue(element, out l) && l.Running; }
+
         // Идёт работа: элемент мягко приглушается и возвращается. Включать и выключать — по одному разу.
         public static void Breathe(FrameworkElement element, bool on)
         {
-            if (!on || !Ui.Live(element)) { element.BeginAnimation(UIElement.OpacityProperty, null); element.Opacity = 1; return; }
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.55, Ms(900)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            Loop(element, on, delegate(bool run)
+            {
+                if (!run) { element.BeginAnimation(UIElement.OpacityProperty, null); element.Opacity = 1; return; }
+                element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.55, Ms(900)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            });
         }
 
         // Мерцание: точка состояния, пока что-то делается
         public static void Blink(UIElement element, bool on)
         {
-            if (!on || !Ui.Live(element)) { element.BeginAnimation(UIElement.OpacityProperty, null); element.Opacity = 1; return; }
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.3, Ms(650)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            Loop(element, on, delegate(bool run)
+            {
+                if (!run) { element.BeginAnimation(UIElement.OpacityProperty, null); element.Opacity = 1; return; }
+                element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.3, Ms(650)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            });
         }
 
         // Показать или спрятать: появляется, съезжая сверху; уходит, растворяясь, и только потом освобождает место
@@ -1317,11 +1420,16 @@ namespace DevTxt
             }
             if (on)
             {
+                // Снова попросили показать, пока элемент уходил, — возвращается оттуда, где он сейчас, без прыжка
+                // в начало появления. Совсем спрятанный — появляется как обычно: сверху и из прозрачности.
+                var now = element.RenderTransform as TranslateTransform;
+                double y = going ? (now != null ? now.Y : 0) : -6;
+                double o = going ? element.Opacity : 0;
                 element.Visibility = Visibility.Visible;
-                var shift = new TranslateTransform(0, -6);
+                var shift = new TranslateTransform();
                 element.RenderTransform = shift;
-                shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-6, 0, Ms(Tokens.Motion.BaseMs)) { EasingFunction = Out() });
-                element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, Ms(Tokens.Motion.BaseMs)) { EasingFunction = Out() });
+                if (y != 0) shift.BeginAnimation(TranslateTransform.YProperty, From(y, Tokens.Motion.BaseMs));
+                element.BeginAnimation(UIElement.OpacityProperty, From(o, Tokens.Motion.BaseMs));
                 return;
             }
             leaving.Add(element, new object());
@@ -1342,20 +1450,20 @@ namespace DevTxt
         public static void SlideIn(FrameworkElement element, double dx)
         {
             if (!Ui.Live(element)) return;
-            var shift = new TranslateTransform(dx, 0);
+            var shift = new TranslateTransform();
             element.RenderTransform = shift;
-            shift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(dx, 0, Ms(Tokens.Motion.SlowMs)) { EasingFunction = Out() });
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, Ms(Tokens.Motion.SlowMs)) { EasingFunction = Out() });
+            shift.BeginAnimation(TranslateTransform.XProperty, From(dx, Tokens.Motion.SlowMs));
+            element.BeginAnimation(UIElement.OpacityProperty, From(0, Tokens.Motion.SlowMs));
         }
 
         // Вход страницы, как в «Параметрах» Windows 11: новая страница поднимается снизу и проявляется
         public static void Enter(FrameworkElement element)
         {
             if (!Ui.Live(element)) return;
-            var shift = new TranslateTransform(0, 32);
+            var shift = new TranslateTransform();
             element.RenderTransform = shift;
-            shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(32, 0, Ms(Tokens.Motion.SlowMs)) { EasingFunction = Out() });
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, Ms(Tokens.Motion.BaseMs)) { EasingFunction = Out() });
+            shift.BeginAnimation(TranslateTransform.YProperty, From(32, Tokens.Motion.SlowMs));
+            element.BeginAnimation(UIElement.OpacityProperty, From(0, Tokens.Motion.BaseMs));
         }
 
         // «Не получилось»: Windows не трясёт окна — кромка вспыхивает красным, а текст ошибки говорит остальное
@@ -1365,12 +1473,20 @@ namespace DevTxt
             if (b != null) Glow(b, Tokens.Palette.Red);
         }
 
+        // Кисть рамки в покое и кисть идущей вспышки — на каждую рамку
+        class GlowState { public Brush Rest; public Brush Lit; }
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Border, GlowState> glows = new System.Runtime.CompilerServices.ConditionalWeakTable<Border, GlowState>();
+
         // Вспышка кромки: рамка загорается цветом и гаснет — «готово»
         public static void Glow(Border border, Color color)
         {
             if (!Ui.Live(border)) return;
-            Brush rest = border.BorderBrush;
+            // Прежняя вспышка ещё горит — покой берём тот, что был до неё, а не её кисть: иначе рамка вернулась бы
+            // к подсвеченному цвету и осталась такой. Рамку за это время перекрасили — покой уже новый, её кисть
+            GlowState g = glows.GetOrCreateValue(border);
+            Brush rest = g.Lit != null && border.BorderBrush == g.Lit ? g.Rest : border.BorderBrush;
             var lit = new SolidColorBrush(color);
+            g.Rest = rest; g.Lit = lit;
             border.BorderBrush = lit;
             var a = new ColorAnimation(color, Ui.Alpha(color, 0.15), Ms(Tokens.Motion.RevealMs * 2)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
             a.Completed += delegate { if (border.BorderBrush == lit) border.BorderBrush = rest; };

@@ -138,7 +138,9 @@
 /* Появление по очереди: дети поднимаются и проявляются волной. Порядок — через --i на ребёнке
  * (<div style="--i: 2">) или сам собой для первых двенадцати. */
 @keyframes dt-rise { from { opacity: 0; transform: translateY(12px); } }
-.dt-stagger > * { animation: dt-rise var(--dt-dur-slow) var(--dt-ease-out) both; animation-delay: calc(var(--i, 0) * var(--dt-stagger)); }
+/* backwards, а не both: в задержке ребёнок ждёт невидимым, а после появления анимация отпускает opacity и transform —
+ * иначе она перекрывала бы их навсегда, и кнопка в такой стопке переставала сжиматься при нажатии (:active) */
+.dt-stagger > * { animation: dt-rise var(--dt-dur-slow) var(--dt-ease-out) backwards; animation-delay: calc(var(--i, 0) * var(--dt-stagger)); }
 .dt-stagger > :nth-child(2) { --i: 1; } .dt-stagger > :nth-child(3) { --i: 2; } .dt-stagger > :nth-child(4) { --i: 3; }
 .dt-stagger > :nth-child(5) { --i: 4; } .dt-stagger > :nth-child(6) { --i: 5; } .dt-stagger > :nth-child(7) { --i: 6; }
 .dt-stagger > :nth-child(8) { --i: 7; } .dt-stagger > :nth-child(9) { --i: 8; } .dt-stagger > :nth-child(10) { --i: 9; }
@@ -147,7 +149,7 @@
 /* Вырастание из точки: окно или меню появляется из того места, по которому щёлкнули.
  * Точку задают --from-x / --from-y (в процентах или пикселях от левого верхнего угла). */
 @keyframes dt-grow { from { opacity: 0; transform: scale(0.86); } }
-.dt-grow { transform-origin: var(--from-x, 50%) var(--from-y, 50%); animation: dt-grow var(--dt-dur-base) var(--dt-ease-out) both; }
+.dt-grow { transform-origin: var(--from-x, 50%) var(--from-y, 50%); animation: dt-grow var(--dt-dur-base) var(--dt-ease-out) backwards; }   /* backwards — по той же причине, что у .dt-stagger */
 
 /* Набегающее число: <span class="dt-count" style="--to: 66"></span> считает от 0 до --to. */
 @property --dt-n { syntax: '<integer>'; inherits: false; initial-value: 0; }
