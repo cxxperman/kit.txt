@@ -330,9 +330,12 @@ namespace DevTxt
             Smooth();
             w.WindowStyle = WindowStyle.SingleBorderWindow;
             w.ResizeMode = resizable ? ResizeMode.CanResize : ResizeMode.CanMinimize;
+            // Стекло DWM (под ним Mica) — на всё окно, но полосой снизу, а не «целиком» (-1): при -1 DWM считает
+            // верх окна своим заголовком и рисует в нём системные кнопки, и под прозрачным фоном они проступали
+            // в паре с нашими на несколько точек левее («××»). Полоса выше любого экрана закрывает то же окно целиком
             System.Windows.Shell.WindowChrome.SetWindowChrome(w, new System.Windows.Shell.WindowChrome
             {
-                CaptionHeight = 0, ResizeBorderThickness = new Thickness(resizable ? 6 : 0), GlassFrameThickness = new Thickness(-1),
+                CaptionHeight = 0, ResizeBorderThickness = new Thickness(resizable ? 6 : 0), GlassFrameThickness = new Thickness(0, 0, 0, 10000),
                 UseAeroCaptionButtons = false, CornerRadius = new CornerRadius(0)
             });
             if (ThemeFollows) FollowSystemTheme();
@@ -618,7 +621,13 @@ namespace DevTxt
         public double Value
         {
             get { return value; }
-            set { this.value = Math.Max(0, Math.Min(1, value)); if (!busy) Apply(true); }
+            set
+            {
+                double v = Math.Max(0, Math.Min(1, value));
+                if (v == this.value) return;   // перерисовка с тем же значением не начинает доезд заново
+                this.value = v;
+                if (!busy) Apply(true);
+            }
         }
 
         // Сколько осталось — неизвестно (распаковка, установщик): по дорожке бегает полоска
@@ -656,9 +665,13 @@ namespace DevTxt
         }
 
         public void Set(string label, Kind kind) { Set(label, kind == Kind.Ok ? Tokens.Palette.Green : kind == Kind.Warn ? Tokens.Palette.Orange : kind == Kind.Bad ? Tokens.Palette.Red : Tokens.Dark.Label3); }
+        Color? target;   // к какому цвету точка уже идёт: тот же цвет второй раз не запускает переход заново
+
         public void Set(string label, Color color)
         {
             Motion.Swap(text, label);
+            if (target == color) return;
+            target = color;
             if (Ui.Live(dot)) paint.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(color, TimeSpan.FromMilliseconds(Tokens.Motion.BaseMs)));
             else { paint.BeginAnimation(SolidColorBrush.ColorProperty, null); paint.Color = color; }
         }
